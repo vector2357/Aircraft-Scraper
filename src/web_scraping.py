@@ -9,7 +9,7 @@ class FirecrawlScraper:
     def __init__(self, api_key):
         self.app = FirecrawlApp(api_key=api_key)
     
-    def scrape_as_md(self, url, save_to_file=False, output_dir='../scraped_data/markdown_files'):
+    def scrape_as_md(self, url, save_to_file=False, output_dir='./scraped_data/markdown_files'):
         """Scraping completo de um site"""
         try:
             print(f"Iniciando scraping de: {url}")
@@ -44,7 +44,7 @@ class FirecrawlScraper:
             print(f"Erro no scraping: {e}")
             return None
     
-    def scrape_as_html(self, url, save_to_file=False, pretty_print=True, output_dir='../scraped_data/html_files'):
+    def scrape_as_html(self, url, save_to_file=False, pretty_print=True, output_dir='./scraped_data/html_files'):
         """Retorna o conteúdo em HTML"""
         try:
             print(f"🔄 Iniciando scraping HTML de: {url}")
@@ -82,6 +82,7 @@ class FirecrawlScraper:
                 # Criar diretório se não existir
                 os.makedirs(output_dir, exist_ok=True)
                 with open(filepath, 'w', encoding='utf-8') as f:
+                    print("TESTEEEE")
                     f.write(pretty_html)
                 print(f"💾 HTML salvo em: {filepath}")
             
@@ -92,7 +93,7 @@ class FirecrawlScraper:
             return None
 
     def _generate_custom_filename(self, url, extension):
-        """Gera nome no padrão: dominio_pais_ordenacao_palavrachave.md"""
+        """Gera nome no padrão: dominio_pais_ordenacao_palavrachave.md (ou .html)"""
         try:
             parsed_url = urlparse(url)
             # Extrair domínio
@@ -291,7 +292,7 @@ class FirecrawlScraper:
             print(f"🚨 Erro na filtragem HTML: {e}")
             return None
     
-    def scrape_multiple_as_html(self, urls, output_dir="../scraped_data/html_files"):
+    def scrape_multiple_as_html(self, urls, output_dir="./scraped_data/html_files"):
         """Scraping em lote com nomes personalizados"""
         results = {}
         
@@ -302,7 +303,7 @@ class FirecrawlScraper:
         
         return results
     
-    def scrape_multiple_as_md(self, urls, output_dir="../scraped_data/markdown_files"):
+    def scrape_multiple_as_md(self, urls, output_dir="./scraped_data/markdown_files"):
         """Scraping em lote com nomes personalizados"""
         results = {}
         
@@ -329,7 +330,8 @@ if __name__ == "__main__":
 
     scraper = FirecrawlScraper(API_KEY)
 
-    url = "https://www.controller.com/listings/search?Country=178&sort=4&keywords=seneca%20V"
+    #url = "https://www.controller.com/listings/search?Country=178&sort=4&keywords=seneca%20V"
+    url = "https://www.controller.com/listing/for-sale/247962673/2002-piper-seneca-v-piston-twin-aircraft"
     
     print("=" * 60)
     print("🎯 SCRAPING AVANÇADO - TODOS OS FORMATOS")
