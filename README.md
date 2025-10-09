@@ -20,4 +20,4 @@ docker run aircraft-scraper
 docker run -e FIRECRAWL_API_KEY="sua_chave_aqui" aircraft-scraper
 
 # Com .env file
-docker run -it --env-file .env aircraft-scraper     # ESSE SERÁ O MAIS UTILIZADO
+docker run --rm -it --env-file .env -v "$(pwd)/scraped_data:/app/scraped_data" aircraft-scraper    # ESSE SERÁ O MAIS UTILIZADO
