@@ -9,4 +9,4 @@ COPY . .
 
 RUN mkdir -p /app/scraped_data
 
-CMD ["python", "src/web_scraping.py"]
+CMD ["python", "src/main.py"]

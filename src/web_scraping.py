@@ -4,46 +4,96 @@ from bs4 import BeautifulSoup
 import os
 from urllib.parse import urlparse, parse_qs
 from dotenv import load_dotenv
+from urllib.parse import urljoin
+from urllib.parse import urlencode
 
 class FirecrawlScraper:
     def __init__(self, api_key):
         self.app = FirecrawlApp(api_key=api_key)
-    
-    def scrape_as_md(self, url, save_to_file=False, output_dir='./scraped_data/markdown_files'):
-        """Scraping completo de um site"""
-        try:
-            print(f"Iniciando scraping de: {url}")
 
-            # Gerar nome do arquivo
-            filename = self._generate_custom_filename(url, 'md')
-            filepath = os.path.join(output_dir, filename)
+    def build_search_url(self, manufacturer, model=None):
+        """Construindo a url de busca, codificand os parametros"""
+
+        try:
+            base_url = "https://www.controller.com/listings/search"
+
+            params = {'Manufacturer': manufacturer}
+
+            if model:
+                params['Model'] = model
+
+            query_string = urlencode(params)
+
+            final_url = f"{base_url}?{query_string}"
+        
+            return final_url
+        
+        except Exception as e:
+            print(f"Erro na construção da url: {e}")
+            return None
+        
+
+    def get_listing_links(self, search_url):
+        """Pegando todos os links de uma página de busca"""
+        try:
+            print(f"A procurar links na página de pesquisa: {search_url}")
+
+            # Buscar a página
+            html_content = self.scrape_as_html(search_url)
+
+            if not html_content:
+                print("Não foi possível obter o conteúdo HTML da página de pesquisa.")
+                return []
             
-            # Criar diretório se não existir
-            os.makedirs(output_dir, exist_ok=True)
+            # Analisar o html
+            soup = BeautifulSoup(html_content, 'html.parser')
+
+            # DEBUG: Verificar estrutura da página
+            print(f"📊 Título da página: {soup.title.string if soup.title else 'Não encontrado'}")
             
-            # Executar scraping
-            result = self.app.scrape(url)
+            # Tentar diferentes seletores para encontrar os links
+            link_tags = []
             
-            # Extrair e salvar conteúdo markdown
-            if hasattr(result, 'markdown') and result.markdown:
-                content = result.markdown
-                print("✅ Conteúdo markdown encontrado!")
-                
-                if save_to_file:
-                    # Salva arquivo
-                    with open(filepath, 'w', encoding='utf-8') as f:
-                        f.write(content)
-                    print(f"💾 Conteúdo salvo em: {filepath}")
-                
-                return content
-            else:
-                print("Nenhum conteúdo extraído")
-                return None
-                
+            # Seletor original
+            link_tags = soup.find_all('a', class_='list-listing-title-link')
+            print(f"🔍 Tentativa 1 - Classe 'list-listing-title-link': {len(link_tags)} links")
+            
+            # Se não encontrar, tentar outros seletores
+            if not link_tags:
+                link_tags = soup.find_all('a', href=lambda href: href and '/listing/' in href)
+                print(f"🔍 Tentativa 2 - Links com '/listing/': {len(link_tags)} links")
+            
+            if not link_tags:
+                # Buscar por qualquer link que possa ser um anúncio
+                all_links = soup.find_all('a', href=True)
+                for link in all_links:
+                    href = link.get('href', '')
+                    if '/listing/' in href and href.split('/listing/')[1].strip('/').replace('-', '').isalnum():
+                        link_tags.append(link)
+                print(f"🔍 Tentativa 3 - Filtro por padrão de URL: {len(link_tags)} links")
+
+            absolut_links = []
+            base_domain = "https://www.controller.com"
+
+            # Extraindo apenas o link das tags que estão em href
+            for tag in link_tags:
+                relative_link = tag.get('href')
+                if relative_link:
+                    full_link = urljoin(base_domain, relative_link)
+                    absolut_links.append(full_link)
+                    print(f"   ✅ Link encontrado: {full_link}")
+            
+            # Remover duplicatas
+            absolut_links = list(set(absolut_links))
+            
+            print(f"Encontramos {len(absolut_links)} links únicos.")
+
+            return absolut_links
+        
         except Exception as e:
             print(f"Erro no scraping: {e}")
-            return None
-    
+            return []
+
     def scrape_as_html(self, url, save_to_file=False, pretty_print=True, output_dir='./scraped_data/html_files'):
         """Retorna o conteúdo em HTML"""
         try:
@@ -51,8 +101,6 @@ class FirecrawlScraper:
             
             # Solicitar especificamente HTML
             result = self.app.scrape(url)
-            
-            print(f"📦 Tipo do resultado: {type(result)}")
             
             # Tentar obter HTML de diferentes formas
             html_content = None
@@ -74,7 +122,6 @@ class FirecrawlScraper:
                 # Formatar HTML
                 if pretty_print:
                     pretty_html = self._format_html(html_content)
-                # filename = f"scraped_{url.split('//')[-1].split('/')[0]}.html"
                 # Gerar nome do arquivo
                 filename = self._generate_custom_filename(url, 'html')
                 filepath = os.path.join(output_dir, filename)
@@ -82,7 +129,6 @@ class FirecrawlScraper:
                 # Criar diretório se não existir
                 os.makedirs(output_dir, exist_ok=True)
                 with open(filepath, 'w', encoding='utf-8') as f:
-                    print("TESTEEEE")
                     f.write(pretty_html)
                 print(f"💾 HTML salvo em: {filepath}")
             
@@ -149,7 +195,7 @@ class FirecrawlScraper:
         try:
             # Usar BeautifulSoup para formatar
             soup = BeautifulSoup(html_content, 'html.parser')
-            pretty_html = soup.prettify()  # 🔥 Esta função faz a identação automática
+            pretty_html = soup.prettify()
             
             return pretty_html
             
@@ -157,73 +203,10 @@ class FirecrawlScraper:
             print(f"⚠️  Erro na formatação, retornando HTML original: {e}")
             return html_content
         
-    def filter_markdown_data(self, url):
-        """Filtra dados específicos do markdown"""
-        try:
-            result = self.app.scrape(url)
-            
-            if not hasattr(result, 'markdown') or not result.markdown:
-                return None
-            
-            content = result.markdown
-            
-            # Dicionário para armazenar dados filtrados
-            filtered_data = {}
-            
-            # 1. Extrair título principal
-            title_match = re.search(r'# (.*?)\n', content)
-            filtered_data['titulo'] = title_match.group(1) if title_match else "Não encontrado"
-            
-            # 2. Extrair preço
-            price_match = re.search(r'USD \$([\d,]+)', content)
-            filtered_data['preco'] = f"USD ${price_match.group(1)}" if price_match else "Não encontrado"
-            
-            # 3. Extrair localização
-            location_match = re.search(r'Aircraft Location: \[(.*?)\]', content)
-            filtered_data['localizacao'] = location_match.group(1) if location_match else "Não encontrado"
-            
-            # 4. Extrair ano
-            year_match = re.search(r'Year\n\n(\d{4})', content)
-            filtered_data['ano'] = year_match.group(1) if year_match else "Não encontrado"
-            
-            # 5. Extrair horas totais
-            total_time_match = re.search(r'Total Time\n\n([\d,]+)', content)
-            filtered_data['horas_totais'] = total_time_match.group(1) if total_time_match else "Não encontrado"
-            
-            # 6. Extrair horas dos motores
-            engine1_match = re.search(r'Engine 1 Time\n\n(.*?)\n', content)
-            engine2_match = re.search(r'Engine 2 Time\n\n(.*?)\n', content)
-            filtered_data['motor_1_horas'] = engine1_match.group(1) if engine1_match else "Não encontrado"
-            filtered_data['motor_2_horas'] = engine2_match.group(1) if engine2_match else "Não encontrado"
-
-            # 7. Extrair TBO dos motores
-            tbo1_match = re.search(r'Engine 1 TBO\n\n(.*?)\n', content)
-            tbo2_match = re.search(r'Engine 2 TBO\n\n(.*?)\n', content)
-            filtered_data['motor_1_tbo'] = tbo1_match.group(1) if tbo1_match else "Não encontrado"
-            filtered_data['motor_2_tbo'] = tbo2_match.group(1) if tbo2_match else "Não encontrado"
-            
-            # 8. Extrair informações do vendedor
-            seller_match = re.search(r'Seller Information\n\n(.*?)\n\n', content, re.DOTALL)
-            filtered_data['vendedor'] = seller_match.group(1).strip() if seller_match else "Não encontrado"
-            
-            # 9. Extrair todas as imagens
-            images = re.findall(r'!\[(.*?)\]\((.*?)\)', content)
-            filtered_data['imagens'] = [img[1] for img in images]  # Lista de URLs de imagens
-            
-            # 10. Extrair descrição (primeiro parágrafo após o título)
-            desc_match = re.search(r'# .*?\n\n(.*?)\n\n', content, re.DOTALL)
-            filtered_data['descricao'] = desc_match.group(1).strip() if desc_match else "Não encontrado"
-            
-            return filtered_data
-            
-        except Exception as e:
-            print(f"🚨 Erro na filtragem markdown: {e}")
-            return None
-        
-    def filter_html_data(self, url):
+    def filter_html_data(self, url, save_to_file=False):
         """Filtra dados específicos do HTML usando BeautifulSoup (Versão Segura)"""
         try:
-            html_content = self.scrape_as_html(url)
+            html_content = self.scrape_as_html(url, save_to_file=save_to_file)
             if not html_content:
                 print("HTML content is empty. Cannot filter data.")
                 return None
@@ -246,9 +229,7 @@ class FirecrawlScraper:
             headings = {}
             for i in range(1, 4):
                 h_tags = soup.find_all(f'h{i}')
-                # Verifica se h_tags não é None antes de iterar
                 if h_tags:
-                    # Verifica se cada 'h' não é None e tem texto antes de chamar get_text()
                     headings[f'h{i}'] = [h.get_text().strip() for h in h_tags if h and h.get_text()]
             filtered_data['headings'] = headings
 
@@ -264,7 +245,6 @@ class FirecrawlScraper:
             link_tags = soup.find_all('a', href=True)
             if link_tags:
                 for link in link_tags:
-                    # Garante que o link não é None
                     if link:
                         links.append({
                             'texto': link.get_text().strip() if link.get_text() else '',
@@ -284,95 +264,10 @@ class FirecrawlScraper:
                         })
             filtered_data['imagens'] = images
             
-            # ... (as partes de tabelas e metadados já são relativamente seguras, mas pode adicionar verificações se necessário) ...
-            
             return filtered_data
 
         except Exception as e:
-            # Captura qualquer outro erro inesperado e informa qual foi
             print(f"🚨 Erro na filtragem HTML: {e}")
             import traceback
-            traceback.print_exc() # Imprime o rastreamento completo do erro
+            traceback.print_exc()
             return None
-    
-    def scrape_multiple_as_html(self, urls, output_dir="./scraped_data/html_files"):
-        """Scraping em lote com nomes personalizados"""
-        results = {}
-        
-        for url in urls:
-            print(f"\n📄 Processando: {os.path.basename(url)}")
-            result = self.scrape_as_html(url, output_dir)
-            results[url] = result
-        
-        return results
-    
-    def scrape_multiple_as_md(self, urls, output_dir="./scraped_data/markdown_files"):
-        """Scraping em lote com nomes personalizados"""
-        results = {}
-        
-        for url in urls:
-            print(f"\n📄 Processando: {os.path.basename(url)}")
-            result = self.scrape_as_md(url, output_dir)
-            results[url] = result
-        
-        return results
-
-def clear_terminal():
-    """Limpa o terminal de forma compatível com qualquer SO"""
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-# Uso
-if __name__ == "__main__":
-    clear_terminal()
-
-    # Carrega variáveis do arquivo .env
-    load_dotenv()
-
-    # Chave da API do Firecrawl
-    API_KEY = os.getenv('FIRECRAWL_API_KEY')
-
-    scraper = FirecrawlScraper(API_KEY)
-
-    #url = "https://www.controller.com/listings/search?Country=178&sort=4&keywords=seneca%20V"
-    url = "https://www.controller.com/listing/for-sale/247962673/2002-piper-seneca-v-piston-twin-aircraft"
-    
-    print("=" * 60)
-    print("🎯 SCRAPING AVANÇADO - TODOS OS FORMATOS")
-    print("=" * 60)
-    
-    # 1. Obter HTML
-    print("\n1. 🎯 OBTENDO HTML...")
-    html_content = scraper.scrape_as_html(url, save_to_file=True)
-    if html_content:
-        print(f"   ✅ HTML obtido: {len(html_content)} caracteres")
-
-    # 2. Obter Markdown
-    print("\n2. 🎯 OBTENDO MARKDOWN...")
-    markdown_content = scraper.scrape_as_md(url, save_to_file=True)
-    if markdown_content:
-        print(f"   ✅ Markdown obtido: {len(markdown_content)} caracteres")
-
-    # 3. Filtrar dados do Markdown
-    print("\n3. 🎯 FILTRANDO MARKDOWN...")
-    dados_markdown = scraper.filter_markdown_data(url)
-    if dados_markdown:
-        print("   ✅ Dados do Markdown extraídos:")
-        for chave, valor in list(dados_markdown.items())[:10]:
-            print(f"      • {chave}: {valor}")
-    
-    # 4. Filtrar dados do HTML
-    print("\n4. 🎯 FILTRANDO HTML...")
-    dados_html = scraper.filter_html_data(url)
-    if dados_html:
-        print("   ✅ Dados do HTML extraídos:")
-        print(f"      • Título: {dados_html.get('titulo_pagina', 'N/A')}")
-        print(f"      • Headings H1: {len(dados_html.get('headings', {}).get('h1', []))}")
-        print(f"      • Parágrafos: {len(dados_html.get('paragrafos', []))}")
-        print(f"      • Links: {len(dados_html.get('links', []))}")
-        print(f"      • Imagens: {len(dados_html.get('imagens', []))}")
-    
-    print("\n" + "=" * 60)
-    print("✅ PROCESSO CONCLUÍDO!")
-    print("=" * 60)
-
-    # 5. 
