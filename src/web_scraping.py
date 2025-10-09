@@ -237,7 +237,7 @@ class FirecrawlScraper:
             return html_content
         
     def filter_html_data(self, url, save_to_file=False):
-        """Filtra dados específicos do HTML usando BeautifulSoup (Versão Segura)"""
+        """Filtra dados específicos de anúncios de aeronaves do controller.com"""
         try:
             html_content = self.scrape_as_html(url, save_to_file=save_to_file)
             if not html_content:
@@ -245,58 +245,140 @@ class FirecrawlScraper:
                 return None
 
             soup = BeautifulSoup(html_content, 'html.parser')
-            filtered_data = {}
+            filtered_data = {
+                'url': url,
+                'titulo': 'Não encontrado',
+                'preco': 'Não encontrado',
+                'localizacao': 'Não encontrado',
+                'ano': 'Não encontrado',
+                'fabricante': 'Não encontrado',
+                'modelo': 'Não encontrado',
+                'horas_totais': 'Não encontrado',
+                'motor_1_horas': 'Não encontrado',
+                'motor_2_horas': 'Não encontrado',
+                'motor_1_tbo': 'Não encontrado',
+                'motor_2_tbo': 'Não encontrado',
+                'vendedor': 'Não encontrado',
+                'telefone': 'Não encontrado',
+                'descricao': 'Não encontrado',
+            }
 
-            # 1. Título (com fallback e verificação)
-            title_tag = soup.find('title')
-            if title_tag and title_tag.get_text():
-                filtered_data['titulo_pagina'] = title_tag.get_text().strip()
-            else:
-                h1_tag = soup.find('h1')
-                if h1_tag and h1_tag.get_text():
-                    filtered_data['titulo_pagina'] = h1_tag.get_text().strip()
-                else:
-                    filtered_data['titulo_pagina'] = "Não encontrado"
+            # 1. Título do anúncio
+            title_selectors = ['h1', '.listing-title', '.title', '[class*="title"]']
+            for selector in title_selectors:
+                title_tag = soup.select_one(selector)
+                if title_tag and title_tag.get_text(strip=True):
+                    filtered_data['titulo'] = title_tag.get_text(strip=True)
+                    break
 
-            # 2. Headings (H1, H2, H3)
-            headings = {}
-            for i in range(1, 4):
-                h_tags = soup.find_all(f'h{i}')
-                if h_tags:
-                    headings[f'h{i}'] = [h.get_text().strip() for h in h_tags if h and h.get_text()]
-            filtered_data['headings'] = headings
-
-            # 3. Parágrafos
-            paragraphs_tags = soup.find_all('p')
-            if paragraphs_tags:
-                filtered_data['paragrafos'] = [p.get_text().strip() for p in paragraphs_tags if p and p.get_text()]
-            else:
-                filtered_data['paragrafos'] = []
-
-            # 4. Links
-            links = []
-            link_tags = soup.find_all('a', href=True)
-            if link_tags:
-                for link in link_tags:
-                    if link:
-                        links.append({
-                            'texto': link.get_text().strip() if link.get_text() else '',
-                            'url': link['href']
-                        })
-            filtered_data['links'] = links
-
-            # 5. Imagens
-            images = []
-            img_tags = soup.find_all('img', src=True)
-            if img_tags:
-                for img in img_tags:
-                    if img:
-                        images.append({
-                            'alt': img.get('alt', 'Sem descrição'),
-                            'src': img['src']
-                        })
-            filtered_data['imagens'] = images
+            # 2. Preço
+            price_selectors = ['.price', '.cost', '.amount', '[class*="price"]', '[class*="cost"]']
+            price_patterns = [r'USD\s*\$[\d,]+', r'\$[\d,]+']
             
+            for selector in price_selectors:
+                price_element = soup.select_one(selector)
+                if price_element:
+                    price_text = price_element.get_text(strip=True)
+                    for pattern in price_patterns:
+                        match = re.search(pattern, price_text)
+                        if match:
+                            filtered_data['preco'] = match.group()
+                            break
+                    if filtered_data['preco'] != 'Não encontrado':
+                        break
+            
+            # Se não encontrou por seletor, busca no texto completo
+            if filtered_data['preco'] == 'Não encontrado':
+                for pattern in price_patterns:
+                    match = re.search(pattern, html_content)
+                    if match:
+                        filtered_data['preco'] = match.group()
+                        break
+
+            # 3. Localização
+            location_selectors = ['.location', '.address', '.geo', '[class*="location"]', '[class*="address"]']
+            for selector in location_selectors:
+                location_element = soup.select_one(selector)
+                if location_element and location_element.get_text(strip=True):
+                    filtered_data['localizacao'] = location_element.get_text(strip=True)
+                    break
+
+            # 4. Ano - procura por padrão de 4 dígitos (ano)
+            year_match = re.search(r'\b(19|20)\d{2}\b', html_content)
+            if year_match:
+                filtered_data['ano'] = year_match.group()
+
+            # 5. Fabricante e Modelo - extrai do título ou URL
+            if filtered_data['titulo'] != 'Não encontrado':
+                # Tenta extrair fabricante e modelo do título
+                title = filtered_data['titulo'].upper()
+                manufacturers = ['PIPER', 'CESSNA', 'BEECHCRAFT', 'BOEING', 'AIRBUS', 'CIRRUS', 'MOONEY']
+                for manufacturer in manufacturers:
+                    if manufacturer in title:
+                        filtered_data['fabricante'] = manufacturer
+                        # Tenta extrair modelo (parte após o fabricante)
+                        model_part = title.split(manufacturer, 1)[-1].strip()
+                        if model_part:
+                            # Pega as primeiras palavras como modelo
+                            words = model_part.split()[:3]
+                            filtered_data['modelo'] = ' '.join(words)
+                        break
+
+            # 6. Horas totais e dos motores
+            time_patterns = {
+                'horas_totais': [r'Total Time[:\s]*([\d,]+)', r'Total[:\s]*([\d,]+)\s*Hours'],
+                'motor_1_horas': [r'Engine 1 Time[:\s]*([\d,]+)', r'Engine 1[:\s]*([\d,]+)'],
+                'motor_2_horas': [r'Engine 2 Time[:\s]*([\d,]+)', r'Engine 2[:\s]*([\d,]+)'],
+                'motor_1_tbo': [r'Engine 1 TBO[:\s]*([\d,]+)'],
+                'motor_2_tbo': [r'Engine 2 TBO[:\s]*([\d,]+)']
+            }
+
+            for field, patterns in time_patterns.items():
+                for pattern in patterns:
+                    match = re.search(pattern, html_content, re.IGNORECASE)
+                    if match:
+                        filtered_data[field] = match.group(1)
+                        break
+
+            # 7. Informações do vendedor
+            seller_selectors = ['.seller', '.dealer', '.broker', '[class*="seller"]', '[class*="dealer"]']
+            for selector in seller_selectors:
+                seller_element = soup.select_one(selector)
+                if seller_element and seller_element.get_text(strip=True):
+                    filtered_data['vendedor'] = seller_element.get_text(strip=True)
+                    break
+            
+             # 8. Telefone do vendedor
+            phone_selectors = ['.phone', '.telephone', '.contact', '.tel', '[class*="phone"]', '[class*="contact"]']
+            phone_patterns = [
+                r'(\+?\d{1,2}?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})',  # Formato americano/internacional
+                r'(\(\d{3}\)\s?\d{3}-\d{4})',  # (123) 456-7890
+                r'(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})',  # 123-456-7890
+                r'(\+\d{1,3}[-.\s]?\d{2,3}[-.\s]?\d{4,5}[-.\s]?\d{4})'  # Internacional +XX XXX XXXX
+            ]
+        
+            # Primeiro tenta por seletores CSS
+            for selector in phone_selectors:
+                phone_element = soup.select_one(selector)
+                if phone_element and phone_element.get_text(strip=True):
+                    phone_text = phone_element.get_text(strip=True)
+                    for pattern in phone_patterns:
+                        match = re.search(pattern, phone_text)
+                        if match:
+                            filtered_data['telefone'] = match.group()
+                            break
+                    if filtered_data['telefone'] != 'Não encontrado':
+                        break
+
+            # 9. Descrição - pega o primeiro parágrafo longo
+            paragraphs = soup.find_all('p')
+            for p in paragraphs:
+                text = p.get_text(strip=True)
+                if len(text) > 50:  # Considera como descrição se tiver mais de 50 caracteres
+                    filtered_data['descricao'] = text
+                    break
+
+            print(f"✅ Dados extraídos: {filtered_data['fabricante']} {filtered_data['modelo']} - {filtered_data['ano']}")
             return filtered_data
 
         except Exception as e:
