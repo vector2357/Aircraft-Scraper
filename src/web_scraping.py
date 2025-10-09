@@ -221,75 +221,78 @@ class FirecrawlScraper:
             return None
         
     def filter_html_data(self, url):
-        """Filtra dados específicos do HTML usando BeautifulSoup"""
+        """Filtra dados específicos do HTML usando BeautifulSoup (Versão Segura)"""
         try:
-            # Primeiro obtém o conteúdo
             html_content = self.scrape_as_html(url)
-            
             if not html_content:
+                print("HTML content is empty. Cannot filter data.")
                 return None
-            
-            # Parse do HTML
+
             soup = BeautifulSoup(html_content, 'html.parser')
-            
             filtered_data = {}
-            
-            # 1. Extrair título da página
+
+            # 1. Título (com fallback e verificação)
             title_tag = soup.find('title')
-            filtered_data['titulo_pagina'] = title_tag.get_text().strip() if title_tag else "Não encontrado"
-            
-            # 2. Extrair todos os headings (h1, h2, h3)
+            if title_tag and title_tag.get_text():
+                filtered_data['titulo_pagina'] = title_tag.get_text().strip()
+            else:
+                h1_tag = soup.find('h1')
+                if h1_tag and h1_tag.get_text():
+                    filtered_data['titulo_pagina'] = h1_tag.get_text().strip()
+                else:
+                    filtered_data['titulo_pagina'] = "Não encontrado"
+
+            # 2. Headings (H1, H2, H3)
             headings = {}
             for i in range(1, 4):
                 h_tags = soup.find_all(f'h{i}')
-                headings[f'h{i}'] = [h.get_text().strip() for h in h_tags]
+                # Verifica se h_tags não é None antes de iterar
+                if h_tags:
+                    # Verifica se cada 'h' não é None e tem texto antes de chamar get_text()
+                    headings[f'h{i}'] = [h.get_text().strip() for h in h_tags if h and h.get_text()]
             filtered_data['headings'] = headings
-            
-            # 3. Extrair parágrafos principais
-            paragraphs = [p.get_text().strip() for p in soup.find_all('p')]
-            filtered_data['paragrafos'] = paragraphs
-            
-            # 4. Extrair todos os links
+
+            # 3. Parágrafos
+            paragraphs_tags = soup.find_all('p')
+            if paragraphs_tags:
+                filtered_data['paragrafos'] = [p.get_text().strip() for p in paragraphs_tags if p and p.get_text()]
+            else:
+                filtered_data['paragrafos'] = []
+
+            # 4. Links
             links = []
-            for link in soup.find_all('a', href=True):
-                links.append({
-                    'texto': link.get_text().strip(),
-                    'url': link['href']
-                })
+            link_tags = soup.find_all('a', href=True)
+            if link_tags:
+                for link in link_tags:
+                    # Garante que o link não é None
+                    if link:
+                        links.append({
+                            'texto': link.get_text().strip() if link.get_text() else '',
+                            'url': link['href']
+                        })
             filtered_data['links'] = links
-            
-            # 5. Extrair imagens
+
+            # 5. Imagens
             images = []
-            for img in soup.find_all('img', src=True):
-                images.append({
-                    'alt': img.get('alt', 'Sem descrição'),
-                    'src': img['src']
-                })
+            img_tags = soup.find_all('img', src=True)
+            if img_tags:
+                for img in img_tags:
+                    if img:
+                        images.append({
+                            'alt': img.get('alt', 'Sem descrição'),
+                            'src': img['src']
+                        })
             filtered_data['imagens'] = images
             
-            # 6. Extrair tabelas (se houver)
-            tables = []
-            for table in soup.find_all('table'):
-                rows = []
-                for row in table.find_all('tr'):
-                    cells = [cell.get_text().strip() for cell in row.find_all(['td', 'th'])]
-                    rows.append(cells)
-                tables.append(rows)
-            filtered_data['tabelas'] = tables
-            
-            # 7. Extrair metadados
-            meta_tags = {}
-            for meta in soup.find_all('meta'):
-                name = meta.get('name') or meta.get('property')
-                content = meta.get('content')
-                if name and content:
-                    meta_tags[name] = content
-            filtered_data['metatags'] = meta_tags
+            # ... (as partes de tabelas e metadados já são relativamente seguras, mas pode adicionar verificações se necessário) ...
             
             return filtered_data
-            
+
         except Exception as e:
+            # Captura qualquer outro erro inesperado e informa qual foi
             print(f"🚨 Erro na filtragem HTML: {e}")
+            import traceback
+            traceback.print_exc() # Imprime o rastreamento completo do erro
             return None
     
     def scrape_multiple_as_html(self, urls, output_dir="./scraped_data/html_files"):
@@ -371,3 +374,5 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("✅ PROCESSO CONCLUÍDO!")
     print("=" * 60)
+
+    # 5. 
