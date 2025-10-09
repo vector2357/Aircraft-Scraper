@@ -1,3 +1,5 @@
+import time
+import random
 from firecrawl import FirecrawlApp
 import re
 from bs4 import BeautifulSoup
@@ -10,6 +12,14 @@ from urllib.parse import urlencode
 class FirecrawlScraper:
     def __init__(self, api_key):
         self.app = FirecrawlApp(api_key=api_key)
+
+    def _rate_limit_delay(self):
+        """Delay fixo entre requisições para containers"""
+        # Como não podemos manter estado entre execuções, usamos um delay fixo
+        # que garante ficar abaixo do limite de 10 req/minuto
+        base_delay = random.uniform(7, 12)  # 7-12 segundos = ~5-8 req/minuto
+        print(f"⏳ Aguardando {base_delay:.1f} segundos entre requisições...")
+        time.sleep(base_delay)
 
     def build_search_url(self, manufacturer, model=None):
         """Construindo a url de busca, codificand os parametros"""
@@ -97,6 +107,8 @@ class FirecrawlScraper:
     def scrape_as_html(self, url, save_to_file=False, pretty_print=True, output_dir='./scraped_data/html_files'):
         """Retorna o conteúdo em HTML"""
         try:
+            self._rate_limit_delay()
+            
             print(f"🔄 Iniciando scraping HTML de: {url}")
             
             # Solicitar especificamente HTML
@@ -136,6 +148,27 @@ class FirecrawlScraper:
                 
         except Exception as e:
             print(f"🚨 Erro no scraping HTML: {e}")
+        
+            # ADICIONADO: Retry automático em caso de rate limit
+            if "Rate Limit Exceeded" in str(e):
+                # Extrai o tempo de espera da mensagem de erro
+                try:
+                    # Procura por "retry after Xs" no erro
+                    import re
+                    match = re.search(r'retry after (\d+)s', str(e))
+                    if match:
+                        wait_time = int(match.group(1)) + 2  # +2 segundos de segurança
+                    else:
+                        wait_time = 60  # fallback
+                    
+                    print(f"🔄 Rate limit detectado, tentando novamente após {wait_time} segundos...")
+                    time.sleep(wait_time)
+                    return self.scrape_as_html(url, save_to_file, pretty_print, output_dir)
+                except:
+                    print("🔄 Rate limit detectado, tentando novamente após 60 segundos...")
+                    time.sleep(60)
+                    return self.scrape_as_html(url, save_to_file, pretty_print, output_dir)
+            
             return None
 
     def _generate_custom_filename(self, url, extension):

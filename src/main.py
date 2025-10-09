@@ -40,9 +40,8 @@ def main():
 
             dados_anunios.append(scraper.filter_html_data(link,save_to_file=True))
             
-            
-
-    print("\n✅ Processo concluído!")
+    
+    
 
 if __name__ == "__main__":
     main()
