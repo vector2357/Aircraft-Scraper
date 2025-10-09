@@ -1,3 +1,14 @@
 # Variáveis de ambiente
 .env
 
+# Dados gerados por script
+scraped_data/
+
+# Arquivos de Cache e Compilados do Python
+# Gerados automaticamente, não fazem parte do código-fonte.
+__pycache__/
+*.pyc
+
+# Arquivos de Configuração de IDEs/Editores
+.vscode/
+.idea/
