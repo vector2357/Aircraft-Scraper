@@ -5,6 +5,28 @@ from bs4 import BeautifulSoup
 
 class TestFirecrawlScraperIntegration:
     """Testes de integração para FirecrawlScraper"""
+
+    @pytest.mark.integration
+    @pytest.mark.real_page
+    def test_real_listing_page(self, scraper_real):
+        """Testa com uma página real de listagem"""
+        real_url = "https://www.controller.com/listing/for-sale/237079783/2012-piper-seneca-v-piston-twin-aircraft"
+        
+        # Remove o mock para usar a API real
+        result = scraper_real.filter_html_data(real_url)
+
+        assert result is not None
+        assert result['titulo'] == "2012 PIPER SENECA V"
+        assert result['preco'] == "USD $695,000"
+        assert result['localizacao'] == "Cham, Zug, Switzerland"
+        assert result['horas_totais'] == "2596"
+        assert result['motor_1_horas'] == "219"
+        assert result['motor_1_tbo'] == "2000"
+        assert result['motor_2_horas'] == "219"
+        assert result['motor_2_tbo'] == "2000"
+        assert result['telefone'] == "+41 79 446 91 84"
+        assert result['vendedor'] == "Ralph Severin"
+        assert result['descricao'] != 'Não encontrado'
     
     @pytest.mark.integration
     def test_filter_html_data_complete(self, scraper, sample_html_content):

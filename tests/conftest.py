@@ -64,3 +64,32 @@ def sample_urls():
         'listing_url': "https://www.controller.com/listing/piper-archer-123",
         'invalid_url': "https://invalid-url.com"
     }
+
+@pytest.fixture
+def scraper_real():
+    """Scraper para testes reais (sem mocks)"""
+    api_key = os.getenv('FIRECRAWL_API_KEY')
+    if not api_key:
+        pytest.skip("FIRECRAWL_API_KEY não configurada - pulando testes reais")
+    
+    from src.web_scraping import FirecrawlScraper
+    return FirecrawlScraper(api_key=api_key)
+
+
+def pytest_configure(config):
+    """Registrar marcas programaticamente - funciona mesmo sem pytest.ini"""
+    config.addinivalue_line(
+        "markers", "integration: testes de integração"
+    )
+    config.addinivalue_line(
+        "markers", "real_page: testes com páginas reais (requer API key)"
+    )
+    config.addinivalue_line(
+        "markers", "real_page_slow: testes lentos com páginas reais"
+    )
+    config.addinivalue_line(
+        "markers", "slow: testes lentos"
+    )
+    config.addinivalue_line(
+        "markers", "unit: testes unitários"
+    )

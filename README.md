@@ -33,3 +33,6 @@ docker run --rm aircraft-scraper python -m pytest tests/test_scraper_unit.py::Te
 
 # Opção de mensagem de testes com cores
 docker run --rm aircraft-scraper python -m pytest tests/test_scraper_unit.py::TestFirecrawlScraperUnit::test_build_search_url_basic -v --color=yes --tb=short
+
+# Execute APENAS testes reais (com API key)
+docker run --rm -e FIRECRAWL_API_KEY="sua_chave" aircraft-scraper python -m pytest tests/test_scraper_integration.py::TestFirecrawlScraperIntegration::test_real_listing_page --color=yes --tb=short -v -s

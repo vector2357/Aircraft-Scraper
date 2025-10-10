@@ -296,7 +296,11 @@ class FirecrawlScraper:
                         break
 
             # 3. Localização
-            location_selectors = ['.location', '.address', '.geo', '[class*="location"]', '[class*="address"]']
+            location_selectors = [
+                'a[href*="google.com/maps"]',
+                'a[href*="maps.google.com"]',
+                'a[href*="google.com/maps/search"]' 
+            ]
             for selector in location_selectors:
                 location_element = soup.select_one(selector)
                 if location_element and location_element.get_text(strip=True):
@@ -325,57 +329,102 @@ class FirecrawlScraper:
                         break
 
             # 6. Horas totais e dos motores
+
+            texto_sem_tags = re.sub(r'<[^>]+>', ' ', html_content)
+
             time_patterns = {
-                'horas_totais': [r'Total Time[:\s]*([\d,]+)', r'Total[:\s]*([\d,]+)\s*Hours'],
-                'motor_1_horas': [r'Engine 1 Time[:\s]*([\d,]+)', r'Engine 1[:\s]*([\d,]+)'],
-                'motor_2_horas': [r'Engine 2 Time[:\s]*([\d,]+)', r'Engine 2[:\s]*([\d,]+)'],
-                'motor_1_tbo': [r'Engine 1 TBO[:\s]*([\d,]+)'],
-                'motor_2_tbo': [r'Engine 2 TBO[:\s]*([\d,]+)']
+                'horas_totais': [
+                    r'Total Time[^\d]*([\d,]+)',           # "Total Time 2,596"
+                    r'Total[^\d]*Time[^\d]*([\d,]+)',      # "Total Time: 2,596"  
+                    r'Total[^\d]*([\d,]+)\s*Hours',        # "Total 2,596 Hours"
+                    r'Total[^\d]*([\d,]+)\s*Hrs',          # "Total 2,596 Hrs"
+                    r'TT[^\d]*([\d,]+)',                   # "TT: 2,596"
+                    r'([\d,]+)\s*Total Time',              # "2,596 Total Time"
+                    r'Total[^\d]*([\d,]+)'                 # "Total 2596"
+                ],
+                'motor_1_horas': [
+                    r'Engine 1 Time[^\d]*([\d,]+)',
+                    r'Engine 1[^\d]*([\d,]+)',
+                    r'Eng 1 Time[^\d]*([\d,]+)',
+                    r'Left Engine[^\d]*([\d,]+)'
+                ],
+                'motor_2_horas': [
+                    r'Engine 2 Time[^\d]*([\d,]+)',
+                    r'Engine 2[^\d]*([\d,]+)', 
+                    r'Eng 2 Time[^\d]*([\d,]+)',
+                    r'Right Engine[^\d]*([\d,]+)'
+                ],
+                'motor_1_tbo': [
+                    r'Engine 1 TBO[^\d]*([\d,]+)',
+                    r'Eng 1 TBO[^\d]*([\d,]+)',
+                    r'Left Engine TBO[^\d]*([\d,]+)'
+                ],
+                'motor_2_tbo': [
+                    r'Engine 2 TBO[^\d]*([\d,]+)',
+                    r'Eng 2 TBO[^\d]*([\d,]+)',
+                    r'Right Engine TBO[^\d]*([\d,]+)'
+                ]
             }
 
             for field, patterns in time_patterns.items():
                 for pattern in patterns:
-                    match = re.search(pattern, html_content, re.IGNORECASE)
+                    match = re.search(pattern, texto_sem_tags, re.IGNORECASE)
                     if match:
-                        filtered_data[field] = match.group(1)
+                        numero_com_virgula = match.group(1)
+                        numero_sem_virgula = numero_com_virgula.replace(',', '')  # Remove vírgulas
+                        filtered_data[field] = numero_sem_virgula
+                        print(f"✅ {field}: {numero_sem_virgula}")
                         break
 
             # 7. Informações do vendedor
-            seller_selectors = ['.seller', '.dealer', '.broker', '[class*="seller"]', '[class*="dealer"]']
-            for selector in seller_selectors:
-                seller_element = soup.select_one(selector)
-                if seller_element and seller_element.get_text(strip=True):
-                    filtered_data['vendedor'] = seller_element.get_text(strip=True)
-                    break
-            
-             # 8. Telefone do vendedor
-            phone_selectors = ['.phone', '.telephone', '.contact', '.tel', '[class*="phone"]', '[class*="contact"]']
-            phone_patterns = [
-                r'(\+?\d{1,2}?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})',  # Formato americano/internacional
-                r'(\(\d{3}\)\s?\d{3}-\d{4})',  # (123) 456-7890
-                r'(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})',  # 123-456-7890
-                r'(\+\d{1,3}[-.\s]?\d{2,3}[-.\s]?\d{4,5}[-.\s]?\d{4})'  # Internacional +XX XXX XXXX
+
+            # Padrão para capturar contato do vendedor
+            padroes = [
+                r'Contact:([^<]+)<br/>', 
+                r'Contact:\s*([^<\n]+)<br/>',    
+                r'Contact:\s*([^<\n]+)(?:<br/>|$)', 
+                r'Contact[^:]*:\s*([^<\n]+)'      
             ]
+            
+            for padrao in padroes:
+                match = re.search(padrao, html_content, re.IGNORECASE)
+                if match:
+                    filtered_data['vendedor'] = match.group(1).strip()
+            
+
+            # 8. Telefone do vendedor
+
+            # Tenta capturar do texto dentro da tag primeiro
+            phone_patterns = [r'Phone:.*?<a[^>]*>([^<]+)</a>']
         
-            # Primeiro tenta por seletores CSS
-            for selector in phone_selectors:
-                phone_element = soup.select_one(selector)
-                if phone_element and phone_element.get_text(strip=True):
-                    phone_text = phone_element.get_text(strip=True)
-                    for pattern in phone_patterns:
-                        match = re.search(pattern, phone_text)
-                        if match:
-                            filtered_data['telefone'] = match.group()
-                            break
-                    if filtered_data['telefone'] != 'Não encontrado':
+            for pattern in phone_patterns:
+                match = re.search(pattern, html_content)
+                if match:
+                    filtered_data['telefone'] = match.group(1).strip()
+                    break
+                else:
+                    # Fallback: captura do href
+                    padrao_href = r'Phone:.*?<a href="tel:([^"]+)"'
+                    match = re.search(padrao_href, html_content)
+                    if match:
+                        filtered_data['telefone'] = match.group(1).strip()
                         break
 
             # 9. Descrição - pega o primeiro parágrafo longo
-            paragraphs = soup.find_all('p')
-            for p in paragraphs:
-                text = p.get_text(strip=True)
-                if len(text) > 50:  # Considera como descrição se tiver mais de 50 caracteres
-                    filtered_data['descricao'] = text
+            padroes = [
+                r'Description<br/><br/>([^<]+)<br/>',           # Descrição básica
+                r'Description<br/><br/>([^<]+)(?:<br/>|</)',    # Descrição com diferentes fechamentos
+                r'Description\s*<br/><br/>([^<]+?)\s*(?:<br/>|</|$)',  # Com espaços e vários finais
+                r'Description[^>]*>([^<]+)(?:<|$)',             # Formato mais genérico
+                r'<br/><br/>([^<]+)<br/>'                       # Fallback para qualquer texto entre <br/>
+            ]
+            for padrao in padroes:
+                match = re.search(padrao, html_content, re.IGNORECASE)
+                if match:
+                    descricao = match.group(1).strip()
+                    # Remove espaços extras e quebras de linha
+                    descricao = re.sub(r'\s+', ' ', descricao)
+                    filtered_data['descricao'] = descricao
                     break
 
             print(f"✅ Dados extraídos: {filtered_data['fabricante']} {filtered_data['modelo']} - {filtered_data['ano']}")
