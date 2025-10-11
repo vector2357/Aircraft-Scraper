@@ -21,11 +21,11 @@ class TestFirecrawlScraperUnit:
         expected = "https://www.controller.com/listings/search?Manufacturer=PIPER"
         assert url == expected
     
-    def test_build_search_url_with_model(self, scraper):
+    def test_build_search_url_with_multi_params(self, scraper):
         """Testa construção de URL de busca com modelo"""
-        url = scraper.build_search_url("PIPER", "PA-28")
+        url = scraper.build_search_url("PIPER", "SENECA V", "USA")
         
-        expected = "https://www.controller.com/listings/search?Manufacturer=PIPER&Model=PA-28"
+        expected = "https://www.controller.com/listings/search?Manufacturer=PIPER&Model=SENECA%20V&Country=178"
         assert url == expected
     
     def test_build_search_url_exception(self, scraper):

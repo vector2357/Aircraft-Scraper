@@ -16,13 +16,14 @@ def main():
     # --- Defina aqui o que você quer procurar ---
     manufacturer_to_search = "PIPER"
     model_to_search = "SENECA V" 
+    country_to_search = "USA"
     # model_to_search = None # Para pesquisar todos os PIPER
 
     # Crie uma instância do nosso scraper
     scraper = FirecrawlScraper(api_key)
 
     # 1. Construa a URL de pesquisa
-    search_url = scraper.build_search_url(manufacturer_to_search, model_to_search)
+    search_url = scraper.build_search_url(manufacturer_to_search, model_to_search, country_to_search)
     
     # 2. Obtenha a lista de links de anúncios individuais da página de pesquisa
     listing_links = scraper.get_listing_links(search_url)
@@ -73,7 +74,7 @@ def main():
             print(f"👤 Vendedor: {anuncio.get('vendedor', 'N/A')}")
             print(f"📞 Telefone: {anuncio.get('telefone', 'N/A')}")
             print(f"📝 Descrição: {anuncio.get('descricao', 'N/A')[:200]}...")  # Mostra apenas os primeiros 200 caracteres
-            print(f"🖼️  Número de Imagens: {len(anuncio.get('imagens', []))}")
+            # print(f"🖼️  Número de Imagens: {len(anuncio.get('imagens', []))}")
             print(f"🔗 URL: {anuncio.get('url', 'N/A')}")
 
     import json

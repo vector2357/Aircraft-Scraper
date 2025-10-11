@@ -4,10 +4,11 @@ from firecrawl import FirecrawlApp
 import re
 from bs4 import BeautifulSoup
 import os
+import json
 from urllib.parse import urlparse, parse_qs
 from dotenv import load_dotenv
 from urllib.parse import urljoin
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 
 class FirecrawlScraper:
     def __init__(self, api_key):
@@ -21,7 +22,28 @@ class FirecrawlScraper:
         print(f"⏳ Aguardando {base_delay:.1f} segundos entre requisições...")
         time.sleep(base_delay)
 
-    def build_search_url(self, manufacturer, model=None):
+    def carregar_paises(self):
+        """Carrega os países do arquivo JSON"""
+        try:
+            with open('./src/util_datas/paises.json', 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            print(f"Arquivo não encontrado. Criando novo...")
+            return {}
+        except json.JSONDecodeError:
+            print("Erro ao ler JSON. Verifique o formato.")
+            return {}
+        
+    def normalizar_nome(self, nome):
+        # Normaliza o nome do país para busca
+        return nome.strip().lower().replace(' ', '_').replace('-', '_')
+        
+    def get_codigo_pais(self, nome_pais, paises):
+        # Retorna o código numérico do país
+        chave = self.normalizar_nome(nome_pais)
+        return paises.get(chave)
+
+    def build_search_url(self, manufacturer, model=None, country=None):
         """Construindo a url de busca, codificand os parametros"""
 
         try:
@@ -31,8 +53,11 @@ class FirecrawlScraper:
 
             if model:
                 params['Model'] = model
+            if country:
+                paises = self.carregar_paises()
+                params['Country'] = self.get_codigo_pais(country, paises)
 
-            query_string = urlencode(params)
+            query_string = urlencode(params, quote_via=quote)
 
             final_url = f"{base_url}?{query_string}"
         
@@ -334,25 +359,29 @@ class FirecrawlScraper:
 
             time_patterns = {
                 'horas_totais': [
-                    r'Total Time[^\d]*([\d,]+)',           # "Total Time 2,596"
-                    r'Total[^\d]*Time[^\d]*([\d,]+)',      # "Total Time: 2,596"  
-                    r'Total[^\d]*([\d,]+)\s*Hours',        # "Total 2,596 Hours"
-                    r'Total[^\d]*([\d,]+)\s*Hrs',          # "Total 2,596 Hrs"
-                    r'TT[^\d]*([\d,]+)',                   # "TT: 2,596"
-                    r'([\d,]+)\s*Total Time',              # "2,596 Total Time"
-                    r'Total[^\d]*([\d,]+)'                 # "Total 2596"
+                    r'Total Time[^\d]*([\d,]+)',           
+                    r'Total[^\d]*Time[^\d]*([\d,]+)', 
+                    r'Total[^\d]*([\d,]+)\s*Hours',       
+                    r'Total[^\d]*([\d,]+)\s*Hrs',         
+                    r'TT[^\d]*([\d,]+)',                   
+                    r'([\d,]+)\s*Total Time',           
+                    r'Total[^\d]*([\d,]+)'                
                 ],
                 'motor_1_horas': [
-                    r'Engine 1 Time[^\d]*([\d,]+)',
-                    r'Engine 1[^\d]*([\d,]+)',
-                    r'Eng 1 Time[^\d]*([\d,]+)',
-                    r'Left Engine[^\d]*([\d,]+)'
+                    r'Engine 1 Time[^\d]*([\d,]+)\s*([A-Z]+)',  # Captura número E texto
+                    r'Engine 1[^\d]*([\d,]+)\s*([A-Z]+)',
+                    r'Eng 1 Time[^\d]*([\d,]+)\s*([A-Z]+)',
+                    r'Left Engine[^\d]*([\d,]+)\s*([A-Z]+)',
+                    # Padrões alternativos caso o texto venha antes
+                    r'Engine 1 Time\s*([A-Z]+)[^\d]*([\d,]+)'
                 ],
                 'motor_2_horas': [
-                    r'Engine 2 Time[^\d]*([\d,]+)',
-                    r'Engine 2[^\d]*([\d,]+)', 
-                    r'Eng 2 Time[^\d]*([\d,]+)',
-                    r'Right Engine[^\d]*([\d,]+)'
+                    r'Engine 2 Time[^\d]*([\d,]+)\s*([A-Z]+)',
+                    r'Engine 2[^\d]*([\d,]+)\s*([A-Z]+)',
+                    r'Eng 2 Time[^\d]*([\d,]+)\s*([A-Z]+)', 
+                    r'Right Engine[^\d]*([\d,]+)\s*([A-Z]+)',
+                    # Padrões alternativos
+                    r'Engine 2 Time\s*([A-Z]+)[^\d]*([\d,]+)'
                 ],
                 'motor_1_tbo': [
                     r'Engine 1 TBO[^\d]*([\d,]+)',
@@ -371,9 +400,10 @@ class FirecrawlScraper:
                     match = re.search(pattern, texto_sem_tags, re.IGNORECASE)
                     if match:
                         numero_com_virgula = match.group(1)
+                        texto = match.group(2) if len(match.groups()) > 1 else ''
                         numero_sem_virgula = numero_com_virgula.replace(',', '')  # Remove vírgulas
-                        filtered_data[field] = numero_sem_virgula
-                        print(f"✅ {field}: {numero_sem_virgula}")
+                        filtered_data[field] = {'horas': numero_sem_virgula, 'status': texto.strip()} if texto else numero_sem_virgula
+                        print(f"✅ {field}: {numero_sem_virgula} {texto.strip() if texto else ''}")
                         break
 
             # 7. Informações do vendedor

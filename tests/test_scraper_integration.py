@@ -20,9 +20,9 @@ class TestFirecrawlScraperIntegration:
         assert result['preco'] == "USD $695,000"
         assert result['localizacao'] == "Cham, Zug, Switzerland"
         assert result['horas_totais'] == "2596"
-        assert result['motor_1_horas'] == "219"
+        assert result['motor_1_horas'] == {'horas': '219', 'status': 'SNEW'}
         assert result['motor_1_tbo'] == "2000"
-        assert result['motor_2_horas'] == "219"
+        assert result['motor_2_horas'] == {'horas': '219', 'status': 'SNEW'}
         assert result['motor_2_tbo'] == "2000"
         assert result['telefone'] == "+41 79 446 91 84"
         assert result['vendedor'] == "Ralph Severin"
