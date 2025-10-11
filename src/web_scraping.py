@@ -359,39 +359,37 @@ class FirecrawlScraper:
 
             time_patterns = {
                 'horas_totais': [
-                    r'Total Time[^\d]*([\d,]+)',           
-                    r'Total[^\d]*Time[^\d]*([\d,]+)', 
-                    r'Total[^\d]*([\d,]+)\s*Hours',       
-                    r'Total[^\d]*([\d,]+)\s*Hrs',         
-                    r'TT[^\d]*([\d,]+)',                   
-                    r'([\d,]+)\s*Total Time',           
-                    r'Total[^\d]*([\d,]+)'                
+                    r'Total Time[^\d]*([\d,\.]+)',           
+                    r'Total[^\d]*Time[^\d]*([\d,\.]+)', 
+                    r'Total[^\d]*([\d,\.]+)\s*Hours',       
+                    r'Total[^\d]*([\d,\.]+)\s*Hrs',         
+                    r'TT[^\d]*([\d,\.]+)',                   
+                    r'([\d,\.]+)\s*Total Time',           
+                    r'Total[^\d]*([\d,\.]+)'                
                 ],
                 'motor_1_horas': [
-                    r'Engine 1 Time[^\d]*([\d,]+)\s*([A-Z]+)',  # Captura número E texto
-                    r'Engine 1[^\d]*([\d,]+)\s*([A-Z]+)',
-                    r'Eng 1 Time[^\d]*([\d,]+)\s*([A-Z]+)',
-                    r'Left Engine[^\d]*([\d,]+)\s*([A-Z]+)',
+                    r'Engine 1 Time[^\d]*([\d,\.]+)\s*([A-Z]+)',  # Captura número E texto
+                    r'Eng 1 Time[^\d]*([\d,\.]+)\s*([A-Z]+)',
+                    r'Left Engine[^\d]*([\d,\.]+)\s*([A-Z]+)',
                     # Padrões alternativos caso o texto venha antes
-                    r'Engine 1 Time\s*([A-Z]+)[^\d]*([\d,]+)'
+                    r'Engine 1 Time\s*([A-Z]+)[^\d]*([\d,\.]+)'
                 ],
                 'motor_2_horas': [
-                    r'Engine 2 Time[^\d]*([\d,]+)\s*([A-Z]+)',
-                    r'Engine 2[^\d]*([\d,]+)\s*([A-Z]+)',
-                    r'Eng 2 Time[^\d]*([\d,]+)\s*([A-Z]+)', 
-                    r'Right Engine[^\d]*([\d,]+)\s*([A-Z]+)',
+                    r'Engine 2 Time[^\d]*([\d,\.]+)\s*([A-Z]+)',
+                    r'Eng 2 Time[^\d]*([\d,\.]+)\s*([A-Z]+)', 
+                    r'Right Engine[^\d]*([\d,\.]+)\s*([A-Z]+)',
                     # Padrões alternativos
-                    r'Engine 2 Time\s*([A-Z]+)[^\d]*([\d,]+)'
+                    r'Engine 2 Time\s*([A-Z]+)[^\d]*([\d,\.]+)'
                 ],
                 'motor_1_tbo': [
-                    r'Engine 1 TBO[^\d]*([\d,]+)',
-                    r'Eng 1 TBO[^\d]*([\d,]+)',
-                    r'Left Engine TBO[^\d]*([\d,]+)'
+                    r'Engine 1 TBO[^\d]*([\d,\.]+)',
+                    r'Eng 1 TBO[^\d]*([\d,\.]+)',
+                    r'Left Engine TBO[^\d]*([\d,\.]+)'
                 ],
                 'motor_2_tbo': [
-                    r'Engine 2 TBO[^\d]*([\d,]+)',
-                    r'Eng 2 TBO[^\d]*([\d,]+)',
-                    r'Right Engine TBO[^\d]*([\d,]+)'
+                    r'Engine 2 TBO[^\d]*([\d,\.]+)',
+                    r'Eng 2 TBO[^\d]*([\d,\.]+)',
+                    r'Right Engine TBO[^\d]*([\d,\.]+)'
                 ]
             }
 
