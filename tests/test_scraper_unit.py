@@ -23,9 +23,9 @@ class TestFirecrawlScraperUnit:
     
     def test_build_search_url_with_multi_params(self, scraper):
         """Testa construção de URL de busca com modelo"""
-        url = scraper.build_search_url("PIPER", "SENECA V", "USA", {"min": "2010", "max": "2020"})
+        url = scraper.build_search_url("PIPER", "SENECA V", "USA", {"min": "2011", "max": "2012"}, {"min": "50000", "max": "800000"})
         
-        expected = "https://www.controller.com/listings/search?Manufacturer=PIPER&Model=SENECA%20V&Country=178&Year=2010%2A2020"
+        expected = "https://www.controller.com/listings/search?Manufacturer=PIPER&Model=SENECA%20V&Country=178&Year=2011%2A2012&Price=50000%2A800000"
         assert url == expected
     
     def test_build_search_url_exception(self, scraper):

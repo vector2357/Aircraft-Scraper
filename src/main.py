@@ -21,13 +21,17 @@ def main():
         "min": "2011",
         "max": "2012"
     }
+    price_to_search = {
+        "min": "50000",
+        "max": "800000"
+    }
     # model_to_search = None # Para pesquisar todos os PIPER
 
     # Crie uma instância do nosso scraper
     scraper = FirecrawlScraper(api_key)
 
     # 1. Construa a URL de pesquisa
-    search_url = scraper.build_search_url(manufacturer_to_search, model_to_search, country_to_search, year_to_search)
+    search_url = scraper.build_search_url(manufacturer_to_search, model_to_search, country_to_search, year_to_search, price_to_search)
     
     # 2. Obtenha a lista de links de anúncios individuais da página de pesquisa
     listing_links = scraper.get_listing_links(search_url)

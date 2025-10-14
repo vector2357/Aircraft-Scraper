@@ -43,7 +43,7 @@ class FirecrawlScraper:
         chave = self.normalizar_nome(nome_pais)
         return paises.get(chave)
 
-    def build_search_url(self, manufacturer, model=None, country=None, year=None):
+    def build_search_url(self, manufacturer, model=None, country=None, year=None, price=None):
         """Construindo a url de busca, codificand os parametros"""
 
         try:
@@ -63,6 +63,13 @@ class FirecrawlScraper:
                 params['Year'] += '*'
                 if 'max' in year:
                     params['Year'] += year['max']
+            if price and isinstance(price, dict):
+                params['Price'] = ""
+                if 'min' in price:
+                    params['Price'] += price['min']
+                params['Price'] += '*'
+                if 'max' in price:
+                    params['Price'] += price['max']
 
             query_string = urlencode(params, quote_via=quote)
 
