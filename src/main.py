@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from web_scraping import FirecrawlScraper
+from sheets import exportar_para_excel
 
 def main():
     """Função principal para executar o processo de scraping."""
@@ -14,16 +15,18 @@ def main():
         return
 
     # --- Defina aqui o que você quer procurar ---
-    manufacturer_to_search = "PIPER"
-    model_to_search = "SENECA V" 
-    country_to_search = "USA"
-    year_to_search = {
-        "min": "2011",
-        "max": "2012"
-    }
-    price_to_search = {
-        "min": "50000",
-        "max": "800000"
+    search_datas = {
+        'manufacturer': "PIPER",
+        'model': "SENECA V",
+        'country': "USA",
+        'year': {
+            "min": "2011",
+            "max": "2012"
+        },
+        'price': {
+            "min": "50000",
+            "max": "800000"
+        }
     }
     # model_to_search = None # Para pesquisar todos os PIPER
 
@@ -31,7 +34,7 @@ def main():
     scraper = FirecrawlScraper(api_key)
 
     # 1. Construa a URL de pesquisa
-    search_url = scraper.build_search_url(manufacturer_to_search, model_to_search, country_to_search, year_to_search, price_to_search)
+    search_url = scraper.build_search_url(search_datas)
     
     # 2. Obtenha a lista de links de anúncios individuais da página de pesquisa
     listing_links = scraper.get_listing_links(search_url)
@@ -95,8 +98,11 @@ def main():
         
         # Nome do arquivo com timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"resultados_{manufacturer_to_search}_{model_to_search.replace(' ', '_')}_{timestamp}.json"
+        filename = f"resultados_{search_datas['manufacturer']}_{search_datas['model'].replace(' ', '_')}_{timestamp}.json"
         filepath = os.path.join(resultados_dir, filename)
+
+        # Salavmento na planilha
+        exportar_para_excel(search_datas, dados_anuncios)
         
         # Salvar em JSON
         with open(filepath, 'w', encoding='utf-8') as f:

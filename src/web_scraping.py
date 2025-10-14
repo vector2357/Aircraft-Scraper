@@ -43,33 +43,40 @@ class FirecrawlScraper:
         chave = self.normalizar_nome(nome_pais)
         return paises.get(chave)
 
-    def build_search_url(self, manufacturer, model=None, country=None, year=None, price=None):
+    def build_search_url(self, search):
         """Construindo a url de busca, codificand os parametros"""
 
         try:
             base_url = "https://www.controller.com/listings/search"
 
-            params = {'Manufacturer': manufacturer}
+            params = {'Manufacturer': search['manufacturer']}
 
-            if model:
-                params['Model'] = model
-            if country:
+            # Parâmetro model
+            if search['model']:
+                params['Model'] = search['model']
+
+            # Parâmetro country
+            if search['country']:
                 paises = self.carregar_paises()
-                params['Country'] = self.get_codigo_pais(country, paises)
-            if year and isinstance(year, dict):
+                params['Country'] = self.get_codigo_pais(search['country'], paises)
+
+            # Parâmetro year
+            if search['year'] and isinstance(search['year'], dict):
                 params['Year'] = ""
-                if 'min' in year:
-                    params['Year'] += year['min']
+                if 'min' in search['year']:
+                    params['Year'] += search['year']['min']
                 params['Year'] += '*'
-                if 'max' in year:
-                    params['Year'] += year['max']
-            if price and isinstance(price, dict):
+                if 'max' in search['year']:
+                    params['Year'] += search['year']['max']
+
+            # Parâmetro price
+            if search['price'] and isinstance(search['price'], dict):
                 params['Price'] = ""
-                if 'min' in price:
-                    params['Price'] += price['min']
+                if 'min' in search['price']:
+                    params['Price'] += search['price']['min']
                 params['Price'] += '*'
-                if 'max' in price:
-                    params['Price'] += price['max']
+                if 'max' in search['price']:
+                    params['Price'] += search['price']['max']
 
             query_string = urlencode(params, quote_via=quote)
 
