@@ -120,6 +120,7 @@ class FirecrawlScraper:
             # Extraindo apenas o link das tags que estão em href
             for tag in link_tags:
                 relative_link = tag.get('href')
+                relative_link += '?print=1'
                 if relative_link:
                     full_link = urljoin(base_domain, relative_link)
                     absolut_links.append(full_link)
@@ -305,7 +306,7 @@ class FirecrawlScraper:
 
             # 2. Preço
             price_selectors = ['.price', '.cost', '.amount', '[class*="price"]', '[class*="cost"]']
-            price_patterns = [r'USD\s*\$[\d,]+', r'\$[\d,]+']
+            price_patterns = [r'Call\s*for\s*price', r'USD\s*\$[\d,]+', r'\$[\d,]+']
             
             for selector in price_selectors:
                 price_element = soup.select_one(selector)

@@ -18,8 +18,8 @@ def main():
     model_to_search = "SENECA V" 
     country_to_search = "USA"
     year_to_search = {
-        "min": "2010",
-        "max": "2020"
+        "min": "2011",
+        "max": "2012"
     }
     # model_to_search = None # Para pesquisar todos os PIPER
 
