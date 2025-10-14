@@ -17,13 +17,17 @@ def main():
     manufacturer_to_search = "PIPER"
     model_to_search = "SENECA V" 
     country_to_search = "USA"
+    year_to_search = {
+        "min": "2010",
+        "max": "2020"
+    }
     # model_to_search = None # Para pesquisar todos os PIPER
 
     # Crie uma instância do nosso scraper
     scraper = FirecrawlScraper(api_key)
 
     # 1. Construa a URL de pesquisa
-    search_url = scraper.build_search_url(manufacturer_to_search, model_to_search, country_to_search)
+    search_url = scraper.build_search_url(manufacturer_to_search, model_to_search, country_to_search, year_to_search)
     
     # 2. Obtenha a lista de links de anúncios individuais da página de pesquisa
     listing_links = scraper.get_listing_links(search_url)
