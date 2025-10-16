@@ -20,8 +20,8 @@ def main():
         'model': "SENECA V",
         'country': "USA",
         'year': {
-            "min": "2011",
-            "max": "2012"
+            "min": None,
+            "max": None
         },
         'price': {
             "min": None,

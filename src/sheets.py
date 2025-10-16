@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from datetime import datetime
 
-def exportar_para_excel(dados_pesquisa, resultados_aeronaves, nome_arquivo=None):
+def exportar_para_excel(dados_pesquisa, resultados_aeronaves, nome_arquivo='resultados_aeronaves.xlsx'):
     """
     Exporta dados de pesquisa e resultados para planilha Excel
     
@@ -52,13 +52,43 @@ def exportar_para_excel(dados_pesquisa, resultados_aeronaves, nome_arquivo=None)
     
     df_aeronaves = pd.DataFrame(dados_planilha)
 
-    # Criar arquivo Excel com múltiplas abas
     with pd.ExcelWriter(caminho_completo, engine='openpyxl') as writer:
-        # Aba 1: Dados da Pesquisa
-        df_pesquisa.to_excel(writer, sheet_name='Dados Pesquisa', index=False)
+        # Escrever primeiro DataFrame começando na linha 0
+        df_pesquisa.to_excel(writer, sheet_name='Dados Consolidados', index=False, startrow=0)
         
-        # Aba 2: Resultados das Aeronaves
-        df_aeronaves.to_excel(writer, sheet_name='Aeronaves', index=False)
+        # Calcular onde começar o segundo DataFrame
+        # Linha inicial + número de linhas do primeiro DataFrame + 1 linha vazia
+        start_row_second = len(df_pesquisa) + 2
+        
+        # Escrever segundo DataFrame começando na posição calculada
+        df_aeronaves.to_excel(writer, sheet_name='Dados Consolidados', index=False, startrow=start_row_second)
+
+        # Aplicar o ajuste automático
+        worksheet = writer.sheets['Dados Consolidados']
+        auto_ajustar_colunas(worksheet)
     
     print(f"Planilha exportada com sucesso: {caminho_completo}")
     return caminho_completo
+
+def auto_ajustar_colunas(worksheet):
+    """
+    Ajusta automaticamente a largura de todas as colunas
+    baseada no maior conteúdo de cada coluna
+    """
+    for column in worksheet.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        
+        for cell in column:
+            try:
+                # Considerar o cabeçalho também
+                if cell.value:
+                    cell_length = len(str(cell.value))
+                    if cell_length > max_length:
+                        max_length = cell_length
+            except:
+                pass
+        
+        # Adicionar margem de segurança
+        adjusted_width = (max_length + 2)
+        worksheet.column_dimensions[column_letter].width = adjusted_width
