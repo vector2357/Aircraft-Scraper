@@ -61,21 +61,21 @@ class FirecrawlScraper:
                 params['Country'] = self.get_codigo_pais(search['country'], paises)
 
             # Parâmetro year
-            if search['year'] and isinstance(search['year'], dict):
+            if search['year'] and isinstance(search['year'], dict) and (search['year']['min'] or search['year']['max']):
                 params['Year'] = ""
-                if 'min' in search['year']:
+                if search['year']['min']:
                     params['Year'] += search['year']['min']
                 params['Year'] += '*'
-                if 'max' in search['year']:
+                if search['year']['max']:
                     params['Year'] += search['year']['max']
 
             # Parâmetro price
-            if search['price'] and isinstance(search['price'], dict):
+            if search['price'] and isinstance(search['price'], dict) and (search['price']['min'] or search['price']['max']):
                 params['Price'] = ""
-                if 'min' in search['price']:
+                if search['price']['min']:
                     params['Price'] += search['price']['min']
                 params['Price'] += '*'
-                if 'max' in search['price']:
+                if search['price']['max']:
                     params['Price'] += search['price']['max']
 
             query_string = urlencode(params, quote_via=quote)
@@ -109,6 +109,10 @@ class FirecrawlScraper:
             
             # Tentar diferentes seletores para encontrar os links
             link_tags = []
+
+            if soup.find('h1', text=re.compile(r'No Listings Found', re.IGNORECASE)):
+                print("❌ Nenhum anúncio encontrado na página de pesquisa.")
+                return []
             
             # Seletor original
             link_tags = soup.find_all('a', class_='list-listing-title-link')
@@ -174,7 +178,7 @@ class FirecrawlScraper:
             else:
                 print("❌ Nenhum conteúdo disponível")
                 return None
-            
+                        
             # Salvar se solicitado
             if save_to_file and html_content:
                 pretty_html = html_content

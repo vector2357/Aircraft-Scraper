@@ -3,6 +3,7 @@
 
 # Dados gerados por script
 scraped_data/
+planilhas/
 
 # Arquivos de Cache e Compilados do Python
 # Gerados automaticamente, não fazem parte do código-fonte.

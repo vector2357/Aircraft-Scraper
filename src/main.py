@@ -24,8 +24,8 @@ def main():
             "max": "2012"
         },
         'price': {
-            "min": "50000",
-            "max": "800000"
+            "min": None,
+            "max": None
         }
     }
     # model_to_search = None # Para pesquisar todos os PIPER
