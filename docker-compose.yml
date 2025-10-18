@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  # --- CONTAINER PRINCIPAL: APP PYTHON ---
+  app:
+    build: .
+    container_name: aircraft-scraper
+    image: aircraft-scraper
+    env_file:
+      - .env
+    volumes:
+      - ./scraped_data:/app/scraped_data
+      - ./planilhas:/app/planilhas
+    command: ["python", "src/main.py"]
+    tty: true
+    stdin_open: true
+    restart: "no"
+    expose:
+      - "8000"
+
+  # --- CONTAINER DO NGROK ---
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok_tunnel
+    depends_on:
+      - app
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    command: http app:8000
+    ports:
+      - "4040:4040"  # painel web do ngrok
+
+  # --- INSPECTOR PARA MOSTRAR URL PÚBLICA ---
+  ngrok-inspector:
+    image: curlimages/curl:latest
+    depends_on:
+      - ngrok
+    entrypoint: >
+      sh -c "
+        echo '⏳ Aguardando ngrok iniciar...' &&
+        sleep 7 &&
+        echo '🌐 URL pública do ngrok:' &&
+        curl -s http://ngrok:4040/api/tunnels | grep -o 'https://[a-zA-Z0-9.-]*.ngrok-free.app' || echo '⚠️ Ainda não disponível'
+      "

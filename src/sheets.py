@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from datetime import datetime
 
-def exportar_para_excel(dados_pesquisa, resultados_aeronaves, nome_arquivo='resultados_aeronaves.xlsx'):
+def exportar_para_google_sheets(dados_pesquisa, resultados_aeronaves, nome_arquivo='resultados_aeronaves.xlsx'):
     """
     Exporta dados de pesquisa e resultados para planilha Excel
     
@@ -21,9 +21,23 @@ def exportar_para_excel(dados_pesquisa, resultados_aeronaves, nome_arquivo='resu
 
     # Caminho completo do arquivo
     caminho_completo = os.path.join('./planilhas/', nome_arquivo)
+
+    # Preparar dados da pesquisa para planilha
+    dados_pesquisa_lista = []
+
+    linha = {
+        'Fabricante': dados_pesquisa.get('manufacturer', ''),
+        'Modelo': dados_pesquisa.get('model', ''),
+        'País': dados_pesquisa.get('country', ''),
+        'Ano Mínimo': dados_pesquisa.get('year', {}).get('min', ''),
+        'Ano Máximo': dados_pesquisa.get('year', {}).get('max', ''),
+        'Preço Mínimo': dados_pesquisa.get('price', {}).get('min', ''),
+        'Preço Máximo': dados_pesquisa.get('price', {}).get('max', '')
+    }
+    dados_pesquisa_lista.append(linha)
     
     # Criar DataFrame com dados da pesquisa
-    df_pesquisa = pd.DataFrame([dados_pesquisa])
+    df_pesquisa = pd.DataFrame(dados_pesquisa_lista)
     
     # Preparar dados das aeronaves para planilha
     dados_planilha = []

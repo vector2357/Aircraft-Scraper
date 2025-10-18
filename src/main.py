@@ -1,13 +1,104 @@
 import os
 from dotenv import load_dotenv
 from web_scraping import FirecrawlScraper
-from sheets import exportar_para_excel
+from sheets import exportar_para_google_sheets
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
+import logging
 
-def main():
+# Carregar variáveis de ambiente
+load_dotenv()
+
+# Configurar logging
+logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO'))
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="Web Scraping API", version="1.0.0")
+
+# Configurar CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.getenv('CORS_ORIGINS', ["*"]),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Modelos Pydantic
+class YearRange(BaseModel):
+    min: Optional[str] = None
+    max: Optional[str] = None
+
+class PriceRange(BaseModel):
+    min: Optional[str] = None
+    max: Optional[str] = None
+
+class SearchData(BaseModel):
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    country: Optional[str] = None
+    year: Optional[YearRange] = None
+    price: Optional[PriceRange] = None
+
+class MotorHoras(BaseModel):
+    horas: Optional[str] = None
+    status: Optional[str] = None
+
+class ScrapingResult(BaseModel):
+    url: Optional[str] = None
+    titulo: Optional[str] = None
+    preco: Optional[str] = None
+    localizacao: Optional[str] = None
+    ano: Optional[str] = None
+    fabricante: Optional[str] = None
+    modelo: Optional[str] = None
+    horas_totais: Optional[str] = None
+    motor_1_horas: Optional[MotorHoras] = None
+    motor_2_horas: Optional[MotorHoras] = None
+    motor_1_tbo: Optional[str] = None
+    motor_2_tbo: Optional[str] = None
+    vendedor: Optional[str] = None
+    telefone: Optional[str] = None
+    descricao: Optional[str] = None
+
+@app.post("/scrape", response_model=List[ScrapingResult])
+async def scrape_aircraft_data(search_data: SearchData):
+    """
+    Endpoint para realizar web scraping baseado nos dados de pesquisa
+    """
+    try:
+        logger.info(f"Iniciando scraping com dados: {search_data}")
+
+        search_datas = {
+            'manufacturer': search_data.manufacturer,
+            'model': search_data.model,
+            'country': search_data.country,
+            'year': {
+                "min": search_data.year.min if search_data.year else None,
+                "max": search_data.year.max if search_data.year else None
+            },
+            'price': {
+                "min": search_data.price.min if search_data.price else None,
+                "max": search_data.price.max if search_data.price else None
+            }
+        }
+        
+        # Aqui você chama sua função de scraping existente
+        results = await execute_scraping(search_datas)
+        
+        logger.info(f"Scraping concluído. {len(results)} resultados encontrados.")
+        return results
+        
+    except Exception as e:
+        logger.error(f"Erro durante scraping: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro interno do servidor: {str(e)}")
+
+async def execute_scraping(search_datas: dict) -> List[ScrapingResult]:
     """Função principal para executar o processo de scraping."""
 
     print("🚀 Iniciando o scraper de aeronaves...")
-    load_dotenv()
     api_key = os.getenv('FIRECRAWL_API_KEY')
     
     if not api_key:
@@ -15,7 +106,7 @@ def main():
         return
 
     # --- Defina aqui o que você quer procurar ---
-    search_datas = {
+    """search_datas = {
         'manufacturer': "PIPER",
         'model': "SENECA V",
         'country': "USA",
@@ -27,7 +118,7 @@ def main():
             "min": None,
             "max": None
         }
-    }
+    }"""
     # model_to_search = None # Para pesquisar todos os PIPER
 
     # Crie uma instância do nosso scraper
@@ -102,7 +193,7 @@ def main():
         filepath = os.path.join(resultados_dir, filename)
 
         # Salavmento na planilha
-        exportar_para_excel(search_datas, dados_anuncios)
+        # exportar_para_google_sheets(search_datas, dados_anuncios)
         
         # Salvar em JSON
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -112,6 +203,12 @@ def main():
     
     print(f"\n✅ Processo concluído! {len(dados_anuncios)} anúncios processados com sucesso.")
 
+    return dados_anuncios
+
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    host = os.getenv('SERVER_HOST', '0.0.0.0')
+    port = int(os.getenv('SERVER_PORT', 8000))
+    
+    uvicorn.run(app, host=host, port=port)
