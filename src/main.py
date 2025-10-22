@@ -54,6 +54,8 @@ class ScrapingResult(BaseModel):
     ano: Optional[str] = None
     fabricante: Optional[str] = None
     modelo: Optional[str] = None
+    motor_1_left: Optional[str] = None
+    motor_2_left: Optional[str] = None
     horas_totais: Optional[str] = None
     motor_1_horas: Optional[MotorHoras] = None
     motor_2_horas: Optional[MotorHoras] = None
@@ -61,7 +63,6 @@ class ScrapingResult(BaseModel):
     motor_2_tbo: Optional[str] = None
     vendedor: Optional[str] = None
     telefone: Optional[str] = None
-    descricao: Optional[str] = None
 
 @app.post("/scrape", response_model=List[ScrapingResult])
 async def scrape_aircraft_data(search_data: SearchData):
@@ -105,27 +106,14 @@ async def execute_scraping(search_datas: dict) -> List[ScrapingResult]:
         print("🚨 Erro: A chave FIRECRAWL_API_KEY não foi encontrada. Verifique o seu ficheiro .env.")
         return
 
-    # --- Defina aqui o que você quer procurar ---
-    """search_datas = {
-        'manufacturer': "PIPER",
-        'model': "SENECA V",
-        'country': "USA",
-        'year': {
-            "min": None,
-            "max": None
-        },
-        'price': {
-            "min": None,
-            "max": None
-        }
-    }"""
-    # model_to_search = None # Para pesquisar todos os PIPER
-
     # Crie uma instância do nosso scraper
     scraper = FirecrawlScraper(api_key)
 
     # 1. Construa a URL de pesquisa
     search_url = scraper.build_search_url(search_datas)
+
+    if not search_url:
+        return []
     
     # 2. Obtenha a lista de links de anúncios individuais da página de pesquisa
     listing_links = scraper.get_listing_links(search_url)
@@ -168,6 +156,8 @@ async def execute_scraping(search_datas: dict) -> List[ScrapingResult]:
             print(f"📅 Ano: {anuncio.get('ano', 'N/A')}")
             print(f"✈️  Fabricante: {anuncio.get('fabricante', 'N/A')}")
             print(f"🛩️  Modelo: {anuncio.get('modelo', 'N/A')}")
+            print(f"🔧 Motor 1 Horas Restantes: {anuncio.get('motor_1_left', 'N/A')}")
+            print(f"🔧 Motor 2 Horas Restantes: {anuncio.get('motor_2_left', 'N/A')}")
             print(f"⏱️  Horas Totais: {anuncio.get('horas_totais', 'N/A')}")
             print(f"🔧 Motor 1 Horas: {anuncio.get('motor_1_horas', 'N/A')}")
             print(f"🔧 Motor 2 Horas: {anuncio.get('motor_2_horas', 'N/A')}")
@@ -175,8 +165,6 @@ async def execute_scraping(search_datas: dict) -> List[ScrapingResult]:
             print(f"⚙️  Motor 2 TBO: {anuncio.get('motor_2_tbo', 'N/A')}")
             print(f"👤 Vendedor: {anuncio.get('vendedor', 'N/A')}")
             print(f"📞 Telefone: {anuncio.get('telefone', 'N/A')}")
-            print(f"📝 Descrição: {anuncio.get('descricao', 'N/A')[:200]}...")  # Mostra apenas os primeiros 200 caracteres
-            # print(f"🖼️  Número de Imagens: {len(anuncio.get('imagens', []))}")
             print(f"🔗 URL: {anuncio.get('url', 'N/A')}")
 
     import json

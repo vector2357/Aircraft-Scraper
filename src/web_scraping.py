@@ -4,11 +4,17 @@ from firecrawl import FirecrawlApp
 import re
 from bs4 import BeautifulSoup
 import os
+import sys
 import json
 from urllib.parse import urlparse, parse_qs
 from dotenv import load_dotenv
 from urllib.parse import urljoin
 from urllib.parse import urlencode, quote
+
+# Adicionar o diretório pai ao path do Python
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.engine import engine_left_time
 
 class FirecrawlScraper:
     def __init__(self, api_key):
@@ -41,7 +47,7 @@ class FirecrawlScraper:
     def get_codigo_pais(self, nome_pais, paises):
         # Retorna o código numérico do país
         chave = self.normalizar_nome(nome_pais)
-        return paises.get(chave)
+        return paises.get(chave, None)
 
     def build_search_url(self, search):
         """Construindo a url de busca, codificand os parametros"""
@@ -49,7 +55,11 @@ class FirecrawlScraper:
         try:
             base_url = "https://www.controller.com/listings/search"
 
-            params = {'Manufacturer': search['manufacturer']}
+            params = {}
+
+            # Parâmetro manufacturer
+            if search['manufacturer']:
+                params['Manufacturer'] = search['manufacturer']
 
             # Parâmetro model
             if search['model']:
@@ -58,7 +68,12 @@ class FirecrawlScraper:
             # Parâmetro country
             if search['country']:
                 paises = self.carregar_paises()
-                params['Country'] = self.get_codigo_pais(search['country'], paises)
+                codigo_pais = self.get_codigo_pais(search['country'], paises)
+                if codigo_pais:
+                    params['Country'] = str(codigo_pais)
+                else:
+                    print(f"⚠️  País '{search['country']}' não encontrado na lista. Ignorando filtro de país.")
+                    return None
 
             # Parâmetro year
             if search['year'] and isinstance(search['year'], dict) and (search['year']['min'] or search['year']['max']):
@@ -304,6 +319,8 @@ class FirecrawlScraper:
                 'ano': 'Não encontrado',
                 'fabricante': 'Não encontrado',
                 'modelo': 'Não encontrado',
+                'motor_1_left': 'Não encontrado',
+                'motor_2_left': 'Não encontrado',
                 'horas_totais': 'Não encontrado',
                 'motor_1_horas': 'Não encontrado',
                 'motor_2_horas': 'Não encontrado',
@@ -311,7 +328,6 @@ class FirecrawlScraper:
                 'motor_2_tbo': 'Não encontrado',
                 'vendedor': 'Não encontrado',
                 'telefone': 'Não encontrado',
-                'descricao': 'Não encontrado',
             }
 
             # 1. Título do anúncio
@@ -425,9 +441,14 @@ class FirecrawlScraper:
                     if match:
                         numero_com_virgula = match.group(1)
                         texto = match.group(2) if len(match.groups()) > 1 else ''
+
+                        if texto.strip() != '' and texto.strip() != 'SMOH' and texto.strip() != 'SNEW':
+                            texto = 'Desconhecido'
+
                         numero_sem_virgula = numero_com_virgula.replace(',', '')  # Remove vírgulas
                         filtered_data[field] = {'horas': numero_sem_virgula, 'status': texto.strip()} if texto else numero_sem_virgula
                         print(f"✅ {field}: {numero_sem_virgula} {texto.strip() if texto else ''}")
+
                         break
 
             # 7. Informações do vendedor
@@ -464,22 +485,10 @@ class FirecrawlScraper:
                         filtered_data['telefone'] = match.group(1).strip()
                         break
 
-            # 9. Descrição - pega o primeiro parágrafo longo
-            padroes = [
-                r'Description<br/><br/>([^<]+)<br/>',           # Descrição básica
-                r'Description<br/><br/>([^<]+)(?:<br/>|</)',    # Descrição com diferentes fechamentos
-                r'Description\s*<br/><br/>([^<]+?)\s*(?:<br/>|</|$)',  # Com espaços e vários finais
-                r'Description[^>]*>([^<]+)(?:<|$)',             # Formato mais genérico
-                r'<br/><br/>([^<]+)<br/>'                       # Fallback para qualquer texto entre <br/>
-            ]
-            for padrao in padroes:
-                match = re.search(padrao, html_content, re.IGNORECASE)
-                if match:
-                    descricao = match.group(1).strip()
-                    # Remove espaços extras e quebras de linha
-                    descricao = re.sub(r'\s+', ' ', descricao)
-                    filtered_data['descricao'] = descricao
-                    break
+            filtered_data['motor_1_left'] = engine_left_time(filtered_data['motor_1_tbo'], filtered_data['motor_1_horas']['horas'])
+
+            if filtered_data['motor_2_horas']['status'] != 'Desconhecido':
+                filtered_data['motor_2_left'] = engine_left_time(filtered_data['motor_2_tbo'], filtered_data['motor_2_horas']['horas'])
 
             print(f"✅ Dados extraídos: {filtered_data['fabricante']} {filtered_data['modelo']} - {filtered_data['ano']}")
             return filtered_data
