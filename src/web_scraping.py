@@ -448,7 +448,6 @@ class FirecrawlScraper:
                         numero_sem_virgula = numero_com_virgula.replace(',', '')  # Remove vírgulas
                         filtered_data[field] = {'horas': numero_sem_virgula, 'status': texto.strip()} if texto else numero_sem_virgula
                         print(f"✅ {field}: {numero_sem_virgula} {texto.strip() if texto else ''}")
-
                         break
 
             # 7. Informações do vendedor

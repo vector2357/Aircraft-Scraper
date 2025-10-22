@@ -1,3 +1,7 @@
+"""
+    Arquivo para criação/atualização de planilhas locais
+"""
+
 import os
 import pandas as pd
 from datetime import datetime

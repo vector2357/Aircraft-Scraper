@@ -41,6 +41,8 @@ class SearchData(BaseModel):
     country: Optional[str] = None
     year: Optional[YearRange] = None
     price: Optional[PriceRange] = None
+    engine_left_time_min: Optional[str] = "0"
+    engine_left_time_max: Optional[str] = "1000000000"
 
 class MotorHoras(BaseModel):
     horas: Optional[str] = None
@@ -83,7 +85,9 @@ async def scrape_aircraft_data(search_data: SearchData):
             'price': {
                 "min": search_data.price.min if search_data.price else None,
                 "max": search_data.price.max if search_data.price else None
-            }
+            },
+            'engine_left_time_min': search_data.engine_left_time_min,
+            'engine_left_time_max': search_data.engine_left_time_max
         }
         
         # Aqui você chama sua função de scraping existente
@@ -131,8 +135,15 @@ async def execute_scraping(search_datas: dict) -> List[ScrapingResult]:
 
             dados = scraper.filter_html_data(link, save_to_file=True)
             if dados:
-                dados_anuncios.append(dados)
-                print(f"✅ Dados extraídos com sucesso ({i}/{len(listing_links)})")
+
+                min_engine_left_time = float(dados['motor_1_left'])
+
+                if dados['motor_2_horas']['status'] != 'Desconhecido':
+                    min_engine_left_time = min(min_engine_left_time, float(dados['motor_2_left']))
+
+                if min_engine_left_time >= float(search_datas['engine_left_time_min']) and min_engine_left_time <= float(search_datas['engine_left_time_max']):
+                    dados_anuncios.append(dados)
+                    print(f"✅ Dados extraídos com sucesso ({i}/{len(listing_links)})")
             else:
                 print(f"❌ Falha ao extrair dados ({i}/{len(listing_links)})")
 

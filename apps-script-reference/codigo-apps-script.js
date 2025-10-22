@@ -23,7 +23,7 @@ function executeScraping() {
 }
 
 function getSearchData(sheet) {
-  var dataRange = sheet.getRange(1, 1, 2, 8); // A1:H2
+  var dataRange = sheet.getRange(1, 1, 2, 10);
   var data = dataRange.getValues();
   
   var headers = data[0];
@@ -40,7 +40,9 @@ function getSearchData(sheet) {
     'price': {
         "min": null,
         "max": null
-    }
+    },
+    'engine_left_time_min': "0",
+    'engine_left_time_max': "1000000000"
   };
   
   for (var i = 0; i < headers.length; i++) {
@@ -71,6 +73,12 @@ function getSearchData(sheet) {
         break;
       case 'preco maximo':
         searchData.price.max = value || null;
+        break;
+      case 'horas rest. motor minimo':
+        searchData.engine_left_time_min = value || "0";
+        break;
+      case 'horas rest. motor maximo':
+        searchData.engine_left_time_max = value || "1000000000";
         break;
     }
   }
