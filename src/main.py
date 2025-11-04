@@ -177,7 +177,7 @@ async def execute_scraping(search_datas: dict) -> List[ScrapingResult]:
         return []
     
     # 2. Obtenha a lista de links de anúncios individuais da página de pesquisa
-    listing_links = scraper.get_listing_links(search_url)
+    listing_links = scraper.get_listing_links(search_url, search_datas.get('keywords', '').split(' '))
 
     dados_anuncios = []
 

@@ -148,7 +148,7 @@ class ZenRowsScraper:
             print(f"🚨 Erro no scraping ZenRows: {e}")
             return None
 
-    def get_listing_links(self, search_url):
+    def get_listing_links(self, search_url, split_keywords):
         """Pegando todos os links de uma página de busca - MANTIDA SUA LÓGICA"""
         try:
             print(f"A procurar links na página de pesquisa: {search_url}")
@@ -187,7 +187,13 @@ class ZenRowsScraper:
                 for link in all_links:
                     href = link.get('href', '')
                     if '/listing/' in href and href.split('/listing/')[1].strip('/').replace('-', '').isalnum():
-                        link_tags.append(link)
+                        flag = True
+                        for keyword in split_keywords:
+                            if not (keyword.lower() in link.text.lower()):
+                                flag = False
+                                break
+                        if flag:
+                            link_tags.append(link)
                 print(f"🔍 Tentativa 3 - Filtro por padrão de URL: {len(link_tags)} links")
 
             absolut_links = []
