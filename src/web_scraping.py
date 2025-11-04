@@ -1,5 +1,3 @@
-import time
-import random
 import requests  # 🔥 NOVO: Substitui Firecrawl
 import re
 from bs4 import BeautifulSoup
@@ -14,8 +12,7 @@ from urllib.parse import urlencode, quote
 # Adicionar o diretório pai ao path do Python
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.engine import engine_left_time
-from utils.delay import delay
+from src.utils.engine import engine_left_time
 
 class ZenRowsScraper:
     def __init__(self):
