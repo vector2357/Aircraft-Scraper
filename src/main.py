@@ -33,6 +33,10 @@ API_KEY = os.getenv("API_KEY")
 
 @app.middleware("http")
 async def verify_api_key(request: Request, call_next):
+    # Permite o Render Health Check sem API Key
+    if request.url.path == "/health":
+        return await call_next(request)
+    
     key = request.headers.get("x-api-key")
     if key != API_KEY:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
