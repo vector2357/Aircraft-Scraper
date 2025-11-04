@@ -24,6 +24,14 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Web Scraping API", version="1.0.0")
 
+@app.get("/health")
+async def health_check():
+    """
+    Endpoint simples usado para verificar se o servidor está ativo.
+    Retorna status 200 se o app estiver rodando corretamente.
+    """
+    return {"status": "ok", "message": "API está saudável!"}
+
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
