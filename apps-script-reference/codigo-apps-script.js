@@ -34,8 +34,9 @@ function getSearchData(sheet) {
   var searchRow = data[1];
   
   var searchData = {
-    'manufacturer': null,
-    'model': null,
+    // 'manufacturer': null,
+    // 'model': null,
+    'keywords': null,
     'country': null,
     'year': {
         "min": null,
@@ -57,11 +58,14 @@ function getSearchData(sheet) {
     }
     
     switch(header) {
-      case 'fabricante':
+      /* case 'fabricante':
         searchData.manufacturer = value || null;
         break;
       case 'modelo':
         searchData.model = value || null;
+        break*/
+      case 'nome da aeronave':
+        searchData.keywords = value || null;
         break;
       case 'pais':
         searchData.country = value || null;
@@ -154,6 +158,10 @@ function fillResults(sheet, results) {
     headerRange.setValues([resultHeaders]);
     headerRange.setFontWeight('bold');
   }
+
+  //Logger.log(result.motor_1_horas.horas);
+  //Logger.log(result.motor_2_horas.horas);
+  //Logger.log(result.horas_totais);
   
   // Preencher dados
   var rowData = [];
@@ -161,23 +169,23 @@ function fillResults(sheet, results) {
     var result = results[i];
     var row = [
       result.url || '',
-      result.titulo || '',
-      result.preco || '',
-      result.localizacao || '',
-      result.ano || '',
-      result.fabricante || '',
-      result.modelo || '',
-      result.motor_1_left || '',
-      result.motor_2_left || '',
-      result.horas_totais || '',
-      result.motor_1_horas ? (result.motor_1_horas.horas || '') : '',
-      result.motor_1_horas ? (result.motor_1_horas.status || '') : '',
-      result.motor_2_horas ? (result.motor_2_horas.horas || '') : '',
-      result.motor_2_horas ? (result.motor_2_horas.status || '') : '',
-      result.motor_1_tbo || '',
-      result.motor_2_tbo || '',
-      result.vendedor || '',
-      result.telefone || ''
+      '\'' + (result.titulo || ''),
+      '\'' + (result.preco || ''),
+      '\'' + (result.localizacao || ''),
+      '\'' + (result.ano || ''),
+      '\'' + (result.fabricante || ''),
+      '\'' + (result.modelo || ''),
+      '\'' + (result.motor_1_left || ''),
+      '\'' + (result.motor_2_left || ''),
+      '\'' + (result.horas_totais || ''),
+      '\'' + (result.motor_1_horas ? (result.motor_1_horas.horas || '') : 'Não encontrado'),
+      '\'' + (result.motor_1_horas ? (result.motor_1_horas.status || '') : 'Não encontrado'),
+      '\'' + (result.motor_2_horas ? (result.motor_2_horas.horas || '') : 'Não encontrado'),
+      '\'' + (result.motor_2_horas ? (result.motor_2_horas.status || '') : 'Não encontrado'),
+      '\'' + (result.motor_1_tbo || ''),
+      '\'' + (result.motor_2_tbo || ''),
+      '\'' + (result.vendedor || ''),
+      '\'' + (result.telefone || '')
     ];
     rowData.push(row);
   }
@@ -212,6 +220,7 @@ function debugResults(results) {
     Logger.log('\n🔍 CAMPOS ESPECÍFICOS:');
     Logger.log('URL: ' + firstResult.url);
     Logger.log('Título: ' + firstResult.titulo);
+    Logger.log('Horas Totais: ' + firstResult.horas_totais);
     Logger.log('Motor 1 Left: ' + firstResult.motor_1_left);
     Logger.log('Motor 2 Left: ' + firstResult.motor_2_left);
     Logger.log('Motor 1 Horas: ' + JSON.stringify(firstResult.motor_1_horas));
@@ -253,10 +262,10 @@ function saveToHistory(spreadsheet, searchData, results) {
       '\'' + (result.motor_1_left || ''),         // Horas Restantes Motor 1
       '\'' + (result.motor_2_left || ''),         // Horas Restantes Motor 2
       '\'' + (result.horas_totais || ''),         // Horas Totais
-      '\'' + (result.motor_1_horas ? (result.motor_1_horas.horas || '') : ''),
-      '\'' + (result.motor_1_horas ? (result.motor_1_horas.status || '') : ''),
-      '\'' + (result.motor_2_horas ? (result.motor_2_horas.horas || '') : ''),
-      '\'' + (result.motor_2_horas ? (result.motor_2_horas.status || '') : ''),
+      '\'' + (result.motor_1_horas ? (result.motor_1_horas.horas || '') : 'Não encontrado'),
+      '\'' + (result.motor_1_horas ? (result.motor_1_horas.status || '') : 'Não encontrado'),
+      '\'' + (result.motor_2_horas ? (result.motor_2_horas.horas || '') : 'Não encontrado'),
+      '\'' + (result.motor_2_horas ? (result.motor_2_horas.status || '') : 'Não encontrado'),
       '\'' + (result.motor_1_tbo || ''),          // Motor 1 TBO
       '\'' + (result.motor_2_tbo || ''),          // Motor 2 TBO
       '\'' + (result.vendedor || ''),             // Vendedor
@@ -336,18 +345,14 @@ function formatMainSheetData(sheet, numRows, numColumns) {
       rowRange.setBackground(color);
     }
     
-    // Formatar coluna de preço (coluna 3)
-    var priceRange = sheet.getRange(6, 3, numRows, 1);
-    priceRange.setNumberFormat('"R$ "#,##0.00');
-    
     // Formatar colunas numéricas
-    var numericColumns = [5, 8, 9, 10, 11, 13, 15, 16]; // Ano, Horas Motor 1, Horas Motor 2, etc.
+    /*var numericColumns = [5, 8, 9, 10, 11, 13, 15, 16]; // Ano, Horas Motor 1, Horas Motor 2, etc.
     numericColumns.forEach(function(col) {
       if (col <= numColumns) {
         var range = sheet.getRange(6, col, numRows, 1);
         range.setNumberFormat('#,##0');
       }
-    });
+    });*/
     
     // Centralizar algumas colunas
     var centerColumns = [4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16]; // Localização, Ano, Horas, etc.
@@ -371,10 +376,6 @@ function formatHistorySheet(sheet) {
   if (lastRow > 1) {
     // Formatar coluna de data/hora
     sheet.getRange(2, 1, lastRow - 1, 1).setNumberFormat('dd/mm/yyyy hh:mm:ss');
-    
-    // Formatar coluna de preço (assumindo que é a coluna 5)
-    var priceRange = sheet.getRange(2, 5, lastRow - 1, 1);
-    priceRange.setNumberFormat('"R$ "#,##0.00');
     
     // Aplicar bordas alternadas para melhor legibilidade
     var dataRange = sheet.getRange(2, 1, lastRow - 1, lastColumn);
