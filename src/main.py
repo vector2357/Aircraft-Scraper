@@ -1,19 +1,16 @@
 import os
 from dotenv import load_dotenv
-from web_scraping import ZenRowsScraper  
-from sheets import exportar_para_google_sheets
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 import logging
-import random
 import sys
 
 # Adicionar o diretório pai ao path do Python
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.delay import delay
+from web_scraping import ZenRowsScraper  
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -30,7 +27,7 @@ async def health_check():
     Endpoint simples usado para verificar se o servidor está ativo.
     Retorna status 200 se o app estiver rodando corretamente.
     """
-    return {"status": "ok", "message": "API está saudável!"}
+    return {"status": "ok"}
 
 API_KEY = os.getenv("API_KEY")
 
