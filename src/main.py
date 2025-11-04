@@ -333,7 +333,11 @@ async def execute_scraping(search_datas: dict) -> List[ScrapingResult]:
 
 if __name__ == "__main__":
     import uvicorn
-    host = os.getenv('SERVER_HOST', '0.0.0.0')
-    port = int(os.getenv('SERVER_PORT', 8000))
+    # host = os.getenv('SERVER_HOST', '0.0.0.0')
+    # port = int(os.getenv('SERVER_PORT', 8000))
+
+    # Render injeta a variável PORT automaticamente
+    port = int(os.getenv("PORT", 8000))
+    host = "0.0.0.0"
     
     uvicorn.run(app, host=host, port=port)
