@@ -6,11 +6,11 @@ from pydantic import BaseModel
 from typing import Optional, List
 import logging
 import sys
+from src.web_scraping import ZenRowsScraper  
 
 # Adicionar o diretório pai ao path do Python
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from web_scraping import ZenRowsScraper  
 
 # Carregar variáveis de ambiente
 load_dotenv()
