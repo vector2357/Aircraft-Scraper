@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from web_scraping import ZenRowsScraper  
 from sheets import exportar_para_google_sheets
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -31,6 +31,15 @@ async def health_check():
     Retorna status 200 se o app estiver rodando corretamente.
     """
     return {"status": "ok", "message": "API está saudável!"}
+
+API_KEY = os.getenv("API_KEY")
+
+@app.middleware("http")
+async def verify_api_key(request: Request, call_next):
+    key = request.headers.get("x-api-key")
+    if key != API_KEY:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    return await call_next(request)
 
 # Configurar CORS
 app.add_middleware(
